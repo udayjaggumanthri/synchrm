@@ -42,6 +42,8 @@ urlpatterns = [
     ),
     path("i18n/", include("django.conf.urls.i18n")),
     path("health/", health_check),
+    path("api/v1/", include("horilla_api.urls")),
+    
 ]
 
 # if settings.DEBUG:
