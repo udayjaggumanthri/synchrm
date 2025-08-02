@@ -7,11 +7,12 @@ from django.urls import path
 from horilla_api.api_views.leave.views import *
 
 urlpatterns = [
+    path("", AllLeaveDetailsAPIView.as_view(), name="all-leave-details"),
     path("available-leave/", EmployeeAvailableLeaveGetAPIView.as_view()),
     path("user-request/", EmployeeLeaveRequestGetCreateAPIView.as_view()),
     path("user-request/<int:pk>/", EmployeeLeaveRequestUpdateDeleteAPIView.as_view()),
-    path("leave-type/", LeaveTypeGetCreateAPIView.as_view()),
-    path("leave-type/<int:pk>/", LeaveTypeGetUpdateDeleteAPIView.as_view()),
+    path("leave-types/", LeaveTypeGetCreateAPIView.as_view(),name="leave-type-list"),
+    path("leave-types/<int:pk>/", LeaveTypeGetUpdateDeleteAPIView.as_view(),name="leave-type-list"),
     path("allocation-request/", LeaveAllocationRequestGetCreateAPIView.as_view()),
     path(
         "allocation-request/<int:pk>/",
@@ -19,14 +20,14 @@ urlpatterns = [
     ),
     path("assign-leave/", AssignLeaveGetCreateAPIView.as_view()),
     path("assign-leave/<int:pk>/", AssignLeaveGetUpdateDeleteAPIView.as_view()),
-    path("request/", LeaveRequestGetCreateAPIView.as_view()),
-    path("request/<int:pk>/", LeaveRequestGetUpdateDeleteAPIView.as_view()),
+    path("leave-request/", LeaveRequestGetCreateAPIView.as_view(),name="leave-request-list"),
+    path("leave-request/<int:pk>/", LeaveRequestGetUpdateDeleteAPIView.as_view(),name="leave-request-details"),
     path("company-leave/", CompanyLeaveGetCreateAPIView.as_view()),
     path("company-leave/<int:pk>/", CompanyLeaveGetUpdateDeleteAPIView.as_view()),
     path("holiday/", HolidayGetCreateAPIView.as_view()),
     path("holiday/<int:pk>/", HolidayGetUpdateDeleteAPIView.as_view()),
-    path("approve/<int:pk>/", LeaveRequestApproveAPIView.as_view()),
-    path("reject/<int:pk>/", LeaveRequestRejectAPIView.as_view()),
+    path("approve/<int:pk>/", LeaveRequestApproveAPIView.as_view(),name="leave-approve"),
+    path("reject/<int:pk>/", LeaveRequestRejectAPIView.as_view(),name="leave-reject"),
     path("cancel/<int:pk>/", LeaveRequestCancelAPIView.as_view()),
     path("allocation-approve/<int:pk>/", LeaveAllocationApproveAPIView.as_view()),
     path("allocation-reject/<int:pk>/", LeaveAllocationRequestRejectAPIView.as_view()),

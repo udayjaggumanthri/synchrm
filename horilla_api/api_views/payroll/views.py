@@ -4,6 +4,7 @@ from collections import defaultdict
 from django.contrib.auth.decorators import permission_required
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
+from django.core.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -377,3 +378,29 @@ class TaxBracketView(APIView):
         tax_bracket = TaxBracket.objects.get(id=pk)
         tax_bracket.delete()
         return Response(status=200)
+    
+class PayrollAllRecordsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request,):
+        data = {
+            "contracts": ContractSerializer(Contract.objects.all(), many=True).data,
+            "payslips": PayslipSerializer(Payslip.objects.all(), many=True).data,
+            "loan_accounts": LoanAccountSerializer(LoanAccount.objects.all(), many=True).data,
+            "reimbursements": ReimbursementSerializer(Reimbursement.objects.all(), many=True).data,
+            "tax_brackets": TaxBracketSerializer(TaxBracket.objects.all(), many=True).data,
+            "allowances": AllowanceSerializer(Allowance.objects.all(), many=True).data,
+            "deductions": DeductionSerializer(Deduction.objects.all(), many=True).data,
+        }
+        return Response(data)
+    
+    def post(self, request):
+        serializer = ContractSerializer(data=request.data)
+        try:
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=201)
+            return Response(serializer.errors, status=400)
+        except ValidationError as e:
+            return Response({"error": e.messages}, status=400)
+    

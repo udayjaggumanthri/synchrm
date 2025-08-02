@@ -46,10 +46,12 @@ urlpatterns = [
         name="live_all_notification_list",
     ),
     path(
-        "notification-sound",
+        "notification-sound/",
         views.notification_sound,
         name="notification-sound",
     ),
+    path("notifications/", views.AllNotificationsList.as_view(), name="notification-list"),
+   
 ]
 
 app_name = "notifications"

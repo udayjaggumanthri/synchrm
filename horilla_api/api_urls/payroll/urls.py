@@ -30,4 +30,8 @@ urlpatterns = [
     path("allowance/<int:pk>", AllowanceView.as_view(), name=""),
     path("deduction", DeductionView.as_view(), name=""),
     path("deduction/<int:pk>", DeductionView.as_view(), name=""),
+    path("", PayrollAllRecordsAPIView.as_view(), name="payroll-all-records"),
+
+    
+    
 ]

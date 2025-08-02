@@ -4,6 +4,7 @@ from ...api_views.employee import views as views
 
 urlpatterns = [
     path("employees/", views.EmployeeAPIView.as_view(), name="api-employees-list"),
+    path("employees/<int:pk>/", views.EmployeeAPIView.as_view(), name="api-employee-detail"),
     path(
         "employees/<int:pk>/",
         views.EmployeeAPIView.as_view(),

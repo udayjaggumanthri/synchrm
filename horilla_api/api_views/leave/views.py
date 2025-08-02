@@ -1102,3 +1102,31 @@ class LeavePermissionCheckAPIView(APIView):
         except:
             pass
         return Response({"perm_list": perm_list}, status=200)
+
+class LeaveRequestApproveAPIView(APIView):
+    def post(self, request, pk):
+         return Response({"message": "Leave approved"}, status=200)
+    def put(self, request, pk):
+        # Add your approval logic here
+        return Response({"message": "Leave approved "}, status=200)
+class AllLeaveDetailsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        context = {"request": request}
+        data = {
+            "leave_requests": LeaveRequestGetAllSerilaizer(LeaveRequest.objects.all(), many=True, context=context).data,
+            "leave_types": LeaveTypeAllGetSerializer(LeaveType.objects.all(), many=True, context=context).data,
+            "allocations": LeaveAllocationRequestGetSerializer(LeaveAllocationRequest.objects.all(), many=True, context=context).data,
+            "assigned_leaves": AssignLeaveGetSerializer(AvailableLeave.objects.all(), many=True, context=context).data,
+            "holidays": HoildaySerializer(Holiday.objects.all(), many=True, context=context).data,
+            "company_leaves": CompanyLeaveSerializer(CompanyLeave.objects.all(), many=True, context=context).data,
+        }
+        return Response(data)
+    
+    def post(self, request):
+        serializer = LeaveRequestCreateUpdateSerializer(data=request.data, context={"request": request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
