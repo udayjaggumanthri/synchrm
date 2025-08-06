@@ -218,7 +218,7 @@ class WorkType(HorillaModel):
         return str(self.work_type)
 
     def clean(self, *args, **kwargs):
-        super().clean(*args, **kwargs)
+        super().clean()
         request = getattr(_thread_locals, "request", None)
         if request and request.POST:
             company = request.POST.getlist("company_id", None)

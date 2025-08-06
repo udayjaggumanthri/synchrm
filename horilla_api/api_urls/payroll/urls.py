@@ -8,7 +8,7 @@ urlpatterns = [
         ContractView.as_view(),
     ),
     path(
-        "contract/<int:id>",
+        "contract/<int:pk>",
         ContractView.as_view(),
     ),
     path("payslip/", PayslipView.as_view(), name=""),

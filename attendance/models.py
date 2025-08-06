@@ -262,11 +262,13 @@ class Attendance(HorillaModel):
         if not schedule:
             return False
         return schedule.is_night_shift
-
+    
+    
     def __str__(self) -> str:
-        return f"{self.employee_id.employee_first_name} \
-            {self.employee_id.employee_last_name} - {self.attendance_date}"
-
+     if self.employee_id is not None:
+        return f"{self.employee_id.employee_first_name} {self.employee_id.employee_last_name} - {self.attendance_date}"
+     return f"Unknown Employee - {self.attendance_date}"
+    
     def activities(self):
         """
         This method is used to return the activites and count of activites comes for an attendance
@@ -376,6 +378,7 @@ class Attendance(HorillaModel):
             ):
                 self.attendance_overtime_approve = True
 
+
     def save(self, *args, **kwargs):
         self.update_attendance_overtime()
         self.attendance_day = EmployeeShiftDay.objects.get(
@@ -393,31 +396,34 @@ class Attendance(HorillaModel):
             prev_attendance_approved = prev_state.attendance_overtime_approve
 
         # super().save(*args, **kwargs)  #commend this line, it take too much time to complete
-        employee_ot = self.employee_id.employee_overtime.filter(
+        employee_ot = None
+        if self.employee_id is not None:
+          employee_ot = self.employee_id.employee_overtime.filter(
             month=self.attendance_date.strftime("%B").lower(),
             year=self.attendance_date.year,
-        ).first()
-        if employee_ot:
+          ).first()
+          if employee_ot:
             # Update if exists
             self.update_ot(employee_ot)
-        else:
+          else:
             # Create and update in one call
             employee_ot = self.create_ot()
             self.update_ot(employee_ot)
-        approved = self.attendance_overtime_approve
-        attendance_account = self.employee_id.employee_overtime.filter(
+          approved = self.attendance_overtime_approve
+          attendance_account = self.employee_id.employee_overtime.filter(
             month=self.attendance_date.strftime("%B").lower(),
             year=self.attendance_date.year,
-        ).first()
-        total_ot_seconds = attendance_account.overtime_second
-        if approved and prev_attendance_approved is False:
-            self.approved_overtime_second = self.overtime_second
-            total_ot_seconds = total_ot_seconds + self.approved_overtime_second
-        elif not approved:
-            total_ot_seconds = total_ot_seconds - self.approved_overtime_second
-            self.approved_overtime_second = 0
-        attendance_account.overtime = format_time(total_ot_seconds)
-        attendance_account.save()
+          ).first()
+          if attendance_account:
+             total_ot_seconds = attendance_account.overtime_second
+             if approved and prev_attendance_approved is False:
+                self.approved_overtime_second = self.overtime_second
+                total_ot_seconds = total_ot_seconds + self.approved_overtime_second
+             elif not approved:
+                total_ot_seconds = total_ot_seconds - self.approved_overtime_second
+                self.approved_overtime_second = 0
+             attendance_account.overtime = format_time(total_ot_seconds)
+             attendance_account.save()
         super().save(*args, **kwargs)
 
     def serialize(self):
@@ -448,20 +454,22 @@ class Attendance(HorillaModel):
     def delete(self, *args, **kwargs):
         # Custom delete logic
         # Perform additional operations before deleting the object
+        employee_ot = None
         with contextlib.suppress(Exception):
             AttendanceActivity.objects.filter(
                 attendance_date=self.attendance_date, employee_id=self.employee_id
             ).delete()
-            employee_ot = self.employee_id.employee_overtime.filter(
+            if self.employee_id is not None:
+             employee_ot = self.employee_id.employee_overtime.filter(
                 month=self.attendance_date.strftime("%B").lower(),
                 year=self.attendance_date.strftime("%Y"),
-            )
-        if employee_ot.exists():
-            self.update_ot(employee_ot.first())
+             )
+             if employee_ot.exists():
+                 self.update_ot(employee_ot.first())
         # Call the superclass delete() method to delete the object
         super().delete(*args, **kwargs)
-
-        # Perform additional operations after deleting the object
+    
+    
 
     def create_ot(self):
         """
@@ -732,7 +740,7 @@ class AttendanceOverTime(HorillaModel):
         self.hour_account_second = strtime_seconds(self.worked_hours)
         self.hour_pending_second = strtime_seconds(self.pending_hours)
         self.overtime_second = strtime_seconds(self.overtime)
-        month_name = self.month.split("-")[0]
+        month_name = self.month.split("-")[0].lower()
         months = [
             "january",
             "february",

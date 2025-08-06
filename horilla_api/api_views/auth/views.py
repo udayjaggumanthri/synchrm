@@ -3,7 +3,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from ...api_serializers.auth.serializers import GetEmployeeSerializer
+from ...api_serializers.auth.serializers import GetEmployeeSerializer, ForgotPasswordSerializer
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
+
 
 
 class LoginAPIView(APIView):
@@ -48,3 +55,27 @@ class LoginAPIView(APIView):
                 return Response({"error": "Invalid credentials"}, status=401)
         else:
             return Response({"error": "Please provide Username and Password"})
+
+
+
+User = get_user_model()
+
+class ForgotPasswordAPIView(APIView):
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            try:
+                user = User.objects.get(email=email)
+                # Generate a reset token and send email (dummy example)
+                reset_link = f"http://yourdomain.com/reset-password/{user.pk}/dummy-token/"
+                send_mail(
+                    "Password Reset Request",
+                    f"Click the link to reset your password: {reset_link}",
+                    "no-reply@yourdomain.com",
+                    [email],
+                )
+                return Response({"detail": "Password reset link sent to your email."}, status=200)
+            except User.DoesNotExist:
+                return Response({"error": "User with this email does not exist."}, status=404)
+        return Response(serializer.errors, status=400)

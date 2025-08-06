@@ -11,7 +11,7 @@ urlpatterns = [
         name="api-employee-detail",
     ),
     path(
-        "employee-type/<int:pk>",
+        "employee-type/<int:pk>/",
         views.EmployeeTypeAPIView.as_view(),
         name="api-employees",
     ),
@@ -25,6 +25,11 @@ urlpatterns = [
         "employee-bank-details/<int:pk>/",
         views.EmployeeBankDetailsAPIView.as_view(),
         name="api-employee-bank-details-detail",
+    ),
+    path(
+        "employee-bank-details/",
+        views.EmployeeBankDetailsAPIView.as_view(),
+        name="api-employee-bank-details-list",
     ),
     path(
         "employee-work-information/",
@@ -100,10 +105,10 @@ urlpatterns = [
         name="api-document-detail",
     ),
     path(
-        "employee-bulk- archive/<str:is_active>/",
-        views.EmployeeBulkArchiveView.as_view(),
-        name="api-employee-bulk-archive",
-    ),
+    "employee-bulk-archive/<str:is_active>/",
+    views.EmployeeBulkArchiveView.as_view(),
+    name="api-employee-bulk-archive",
+   ),
     path(
         "employee-archive/<int:id>/<str:is_active>/",
         views.EmployeeArchiveView.as_view(),

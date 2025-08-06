@@ -229,24 +229,22 @@ class EmployeeBankDetailsAPIView(APIView):
         perm = "base.view_employeebankdetails"
         queryset = permission_based_queryset(user, perm, queryset)
         return queryset
-
+    
     def get(self, request, pk=None):
-        bank_detail = EmployeeBankDetails.objects.get(pk=pk)
-        if (
-            request.user.employee_get
-            in [
-                bank_detail.employee_id,
-                bank_detail.employee_id.get_reporting_manager(),
-            ]
-        ) or request.user.has_perm("employee.view_employeebankdetails"):
-            serializer = EmployeeBankDetailsSerializer(bank_detail)
+     if pk:
+        # Detail view
+        try:
+            obj = EmployeeBankDetails.objects.get(pk=pk)
+            serializer = EmployeeBankDetailsSerializer(obj)
             return Response(serializer.data)
+        except EmployeeBankDetails.DoesNotExist:
+            return Response({"detail": "Not found."}, status=404)
+     else:
+        # List view
+        queryset = EmployeeBankDetails.objects.all()
+        serializer = EmployeeBankDetailsSerializer(queryset, many=True)
+        return Response(serializer.data)
 
-        return Response({"message": "No permission"}, status=400)
-
-    @manager_or_owner_permission_required(
-        EmployeeBankDetails, "employee.add_employeebankdetails"
-    )
     def post(self, request):
         serializer = EmployeeBankDetailsSerializer(data=request.data)
         if serializer.is_valid():
@@ -306,15 +304,23 @@ class EmployeeWorkInformationAPIView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, pk):
-        work_info = EmployeeWorkInformation.objects.get(pk=pk)
-        if (
-            request.user.employee_get
-            in [work_info.employee_id, work_info.reporting_manager_id]
-        ) or request.user.has_perm("employee.view_employeeworkinformation"):
-            serializer = EmployeeWorkInformationSerializer(work_info)
+    def get(self,request,pk=None):
+        employee_id = request.GET.get("employee_id", None)
+        if pk:
+            work_info = EmployeeWorkInformation.objects.get(pk=pk)
+            if (
+                request.user.employee_get
+                in [work_info.employee_id, work_info.reporting_manager_id]
+            ) or request.user.has_perm("employee.view_employeeworkinformation"):
+                serializer = EmployeeWorkInformationSerializer(work_info)
+                return Response(serializer.data, status=200)
+            return Response({"message": "No permission"}, status=400)
+        else:
+            queryset = EmployeeWorkInformation.objects.all()
+            if employee_id:
+                queryset = queryset.filter(employee_id=employee_id)
+            serializer = EmployeeWorkInformationSerializer(queryset, many=True)
             return Response(serializer.data, status=200)
-        return Response({"message": "No permission"}, status=400)
 
     @manager_permission_required("employee.add_employeeworkinformation")
     def post(self, request):
@@ -650,14 +656,37 @@ class PolicyAPIView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
 
+    # def delete(self, request, pk):
+    #     if permission_check(request, "employee.delete_policy") is False:
+    #         return Response({"error": "No permission"}, status=401)
+    #     policy = self.get_object(pk)
+    #     policy.delete()
+    #     return Response({"message": "Policy deleted"}, status=200)
+
+    # def delete(self, request, pk):
+    #    if permission_check(request, "employee.delete_policy") is False:
+    #     return Response({"error": "No permission"}, status=401)
+    #    try:
+    #        policy = self.get_object(pk)
+    #        policy.delete()
+    #        return Response({"message": "Policy deleted"}, status=200)
+    #    except Http404:
+    #         return Response({"error": "Policy not found"}, status=404)
+
+
     def delete(self, request, pk):
-        if permission_check(request, "employee.delete_policy") is False:
-            return Response({"error": "No permission"}, status=401)
+      if permission_check(request, "employee.delete_policy") is False:
+        return Response({"error": "No permission"}, status=401)
+      try:
         policy = self.get_object(pk)
         policy.delete()
-        return Response(status=204)
-
-
+        return Response({"message": "Policy deleted"}, status=200)
+      except Http404:
+        return Response({"error": "Policy not found"}, status=404)
+      except Exception as e:
+        # Log the error for debugging
+        print("Delete Policy Error:", str(e))
+        return Response({"error": str(e)}, status=500)
 class DocumentRequestAPIView(APIView):
     """
     Endpoint for managing document requests.
@@ -826,10 +855,10 @@ class DocumentBulkApproveRejectAPIView(APIView):
         ids = request.data.get("ids", None)
         status = request.data.get("status", None)
         status_code = 200
+        response = []
 
         if ids:
             documents = Document.objects.filter(id__in=ids)
-            response = []
             for document in documents:
                 if not document.document:
                     status_code = 400
@@ -838,8 +867,19 @@ class DocumentBulkApproveRejectAPIView(APIView):
                 response.append({"id": document.id, "status": "success"})
                 document.status = status
                 document.save()
+        else:
+            status_code = 400
+            response.append({"error": "No ids provided"})
         return Response(response, status=status_code)
-
+    
+    @manager_permission_required("horilla_documents.add_document")
+    def post(self, request, id, status):
+      document = Document.objects.filter(id=id).first()
+      if not document:
+        return Response({"error": "Document not found"}, status=404)
+      document.status = status
+      document.save()
+      return Response({"status": "success"}, status=200)
 
 class EmployeeBulkArchiveView(APIView):
     permission_classes = [IsAuthenticated]

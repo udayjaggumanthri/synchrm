@@ -71,6 +71,32 @@ class PayslipView(APIView):
         page = pagination.paginate_queryset(payslip_filter_queryset, request)
         serializer = PayslipSerializer(page, many=True)
         return pagination.get_paginated_response(serializer.data)
+    
+    def post(self, request):
+        serializer = PayslipSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+    
+    def put(self, request, id):
+        try:
+            payslip = Payslip.objects.get(id=id)
+        except Payslip.DoesNotExist:
+            return Response({"error": "Payslip not found"}, status=404)
+        serializer = PayslipSerializer(payslip, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=200)
+        return Response(serializer.errors, status=400)
+    
+    def delete(self, request, id):
+        try:
+            payslip = Payslip.objects.get(id=id)
+        except Payslip.DoesNotExist:
+            return Response({"error": "Payslip not found"}, status=404)
+        payslip.delete()
+        return Response({"status": "deleted"}, status=200)
 
 
 class PayslipDownloadView(APIView):
@@ -146,12 +172,23 @@ class ContractView(APIView):
         return Response(serializer.errors, status=400)
 
     @method_decorator(permission_required("payroll.change_contract"))
+    # def put(self, request, pk):
+    #     contract = Contract.objects.get(id=pk)
+    #     serializer = ContractSerializer(instance=contract, data=request.data)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         return Response(serializer.data, status=200)
+    #     return Response(serializer.errors, status=400)
+
     def put(self, request, pk):
-        contract = Contract.objects.get(id=pk)
-        serializer = ContractSerializer(instance=contract, data=request.data)
+        try:
+            contract = Contract.objects.get(pk=pk)
+        except Contract.DoesNotExist:
+            return Response({"error": "Contract not found"}, status=404)
+        serializer = ContractSerializer(contract, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=200)
+            return Response(serializer.data)
         return Response(serializer.errors, status=400)
 
     @method_decorator(permission_required("payroll.delete_contract"))
@@ -313,13 +350,18 @@ class ReimbursementView(APIView):
 
     @method_decorator(permission_required("payroll.change_reimbursement"))
     def put(self, request, pk):
-        reimbursement = Reimbursement.objects.get(id=pk)
-        serializer = self.serializer_class(instance=reimbursement, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=200)
-        return Response(serializer.errors, status=400)
+      reimbursement = Reimbursement.objects.get(id=pk)
+      serializer = self.serializer_class(
+        instance=reimbursement,
+        data=request.data,
+        context={"request": request}  # <-- add this line
+      )
+      if serializer.is_valid():
+         serializer.save()
+         return Response(serializer.data, status=200)
+      return Response(serializer.errors, status=400)
 
+    
     @method_decorator(permission_required("payroll.delete_reimbursement"))
     def delete(self, request, pk):
         reimbursement = Reimbursement.objects.get(id=pk)
@@ -344,7 +386,22 @@ class ReimbusementApproveRejectView(APIView):
             reimbursement.update(amount=amount)
         reimbursement.update(status=status)
         return Response({"status": reimbursement.first().status}, status=200)
+    
+    def put(self, request, pk):
+        # Your logic to approve/reject reimbursement
+        # Example:
+        try:
+            reimbursement = Reimbursement.objects.get(id=pk)
+        except Reimbursement.DoesNotExist:
+            return Response({"error": "Reimbursement not found"}, status=404)
 
+        status = request.data.get("status")
+        if status not in ["approved", "rejected"]:
+            return Response({"error": "Invalid status"}, status=400)
+
+        reimbursement.status = status
+        reimbursement.save()
+        return Response({"status": "updated"}, status=200)
 
 class TaxBracketView(APIView):
 
@@ -367,11 +424,11 @@ class TaxBracketView(APIView):
     def put(self, request, pk):
         tax_bracket = TaxBracket.objects.get(id=pk)
         serializer = TaxBracketSerializer(
-            instance=tax_bracket, data=request.data, partial=True
-        )
-        if serializer.save():
-            serializer.save()
-            return Response(serializer.data, status=200)
+             instance=tax_bracket, data=request.data, partial=True
+       )
+        if serializer.is_valid():
+          serializer.save()
+          return Response(serializer.data, status=200)
         return Response(serializer.errors, status=400)
 
     def delete(self, request, pk):

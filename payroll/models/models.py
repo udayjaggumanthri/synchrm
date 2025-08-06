@@ -1042,12 +1042,12 @@ class Allowance(HorillaModel):
     def __str__(self) -> str:
         return str(self.title)
 
-    def save(self):
+    def save(self, *args, **kwargs):
         request = getattr(horilla_middlewares._thread_locals, "request", None)
         selected_company = request.session.get("selected_company")
         if not self.id and selected_company and selected_company != "all":
             self.company_id = Company.find(selected_company)
-        super().save()
+        super().save(*args, **kwargs)
 
 
 class Deduction(HorillaModel):
@@ -1328,12 +1328,12 @@ class Deduction(HorillaModel):
     def __str__(self) -> str:
         return str(self.title)
 
-    def save(self):
+    def save(self,  *args, **kwargs):
         request = getattr(horilla_middlewares._thread_locals, "request", None)
         selected_company = request.session.get("selected_company")
         if not self.id and selected_company and selected_company != "all":
             self.company_id = Company.find(selected_company)
-        super().save()
+        super().save(*args, **kwargs)
 
 
 class Payslip(HorillaModel):
@@ -1765,6 +1765,7 @@ class Reimbursement(HorillaModel):
                     self.allowance_id.delete()
 
     def delete(self, *args, **kwargs):
+        message = None 
         request = getattr(horilla_middlewares._thread_locals, "request", None)
         if self.status == "approved":
             message = messages.info(
