@@ -33,10 +33,7 @@ urlpatterns = [
     path("allocation-reject/<int:pk>/", LeaveAllocationRequestRejectAPIView.as_view()),
     path("request-bulk-action/", LeaveRequestBulkApproveDeleteAPIview.as_view()),
     path("user-allocation-request/", EmployeeLeaveAllocationGetCreateAPIView.as_view()),
-    path(
-        "user-allocation-request/<int:pk>/",
-        EmployeeLeaveAllocationUpdateDeleteAPIView.as_view(),
-    ),
+    path("user-allocation-request/<int:pk>/", EmployeeLeaveAllocationUpdateDeleteAPIView.as_view()),
     path("status/", LeaveRequestedApprovedCountAPIView.as_view()),
     path(
         "employee-leave-type/<int:pk>/", EmployeeAvailableLeaveTypeGetAPIView.as_view()

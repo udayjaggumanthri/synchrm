@@ -101,28 +101,33 @@ class EmployeeLeaveRequestUpdateDeleteAPIView(APIView):
 
     def put(self, request, pk):
         leave_request = self.get_leave_request(request, pk)
-        employee_id = request.user.employee_get
-        if (
-            leave_request.status == "requested"
-            and leave_request.employee_id == employee_id
-        ):
-            data = request.data
-            if isinstance(data, QueryDict):
-                data = data.dict()
-            data["employee_id"] = employee_id.id
-            data["end_date"] = (
-                data.get("start_date")
-                if not data.get("end_date")
-                else data.get("end_date")
-            )
-            serializer = LeaveRequestCreateUpdateSerializer(leave_request, data=data)
-            if serializer.is_valid():
-                leave_request = serializer.save()
-                return Response(
-                    UserLeaveRequestGetSerilaizer(leave_request).data, status=201
-                )
-            return Response(serializer.errors, status=400)
-        raise serializers.ValidationError({"error": "Access Denied.."})
+        employee = getattr(request.user, "employee_get", None)
+
+        # Check if the user is linked to an employee
+        if not employee:
+           return Response({"error": "User is not linked to an employee."}, status=403)
+
+        # Check if the leave request is in 'requested' status
+        if leave_request.status != "requested":
+           return Response({"error": "Only leave requests with status 'requested' can be updated."}, status=403)
+
+        # Check if the leave request belongs to the current employee
+        if leave_request.employee_id != employee:
+           return Response({"error": "You do not have permission to update this leave request."}, status=403)
+
+        data = request.data
+        if isinstance(data, QueryDict):
+           data = data.dict()
+        data["employee_id"] = employee.id
+        data["end_date"] = data.get("end_date") or data.get("start_date")
+
+        serializer = LeaveRequestCreateUpdateSerializer(leave_request, data=data)
+        if serializer.is_valid():
+          leave_request = serializer.save()
+          return Response(
+            UserLeaveRequestGetSerilaizer(leave_request).data, status=201
+        )
+        return Response(serializer.errors, status=400)
 
     def delete(self, request, pk):
         leave_request = self.get_leave_request(request, pk)
@@ -477,40 +482,39 @@ class LeaveRequestGetUpdateDeleteAPIView(APIView):
 
     @manager_permission_required("leave.change_leaverequest")
     def put(self, request, pk):
-        leave_request = self.get_leave_request(pk)
-        if leave_request.status == "requested":
-            data = request.data
-            if isinstance(data, QueryDict):
-                data = data.dict()
-            data["end_date"] = (
-                data.get("start_date")
-                if not data.get("end_date")
-                else data.get("end_date")
+      leave_request = self.get_leave_request(pk)
+      # Only allow update if status is 'requested'
+      if leave_request.status != "requested":
+        return Response({"error": "Only leave requests with status 'requested' can be updated."}, status=403)
+
+      data = request.data
+      if isinstance(data, QueryDict):
+        data = data.dict()
+      data["end_date"] = data.get("end_date") or data.get("start_date")
+
+      serializer = LeaveRequestCreateUpdateSerializer(leave_request, data=data)
+      if serializer.is_valid():
+        leave_request = serializer.save()
+        with contextlib.suppress(Exception):
+            notify.send(
+                request.user.employee_get,
+                recipient=leave_request.employee_id.employee_work_info.reporting_manager_id.employee_user_id,
+                verb=f"Leave request updated for {leave_request.employee_id}.",
+                verb_ar=f"تم تحديث طلب الإجازة لـ {leave_request.employee_id}.",
+                verb_de=f"Urlaubsantrag aktualisiert für {leave_request.employee_id}.",
+                verb_es=f"Solicitud de permiso actualizada para {leave_request.employee_id}.",
+                verb_fr=f"Demande de congé mise à jour pour {leave_request.employee_id}.",
+                icon="people-circle",
+                redirect=f"/leave/request-view?id={leave_request.id}",
+                api_redirect=f"/api/leave/request/{leave_request.id}/",
             )
-            serializer = LeaveRequestCreateUpdateSerializer(leave_request, data=data)
-            if serializer.is_valid():
-                leave_request = serializer.save()
-                with contextlib.suppress(Exception):
-                    notify.send(
-                        request.user.employee_get,
-                        recipient=leave_request.employee_id.employee_work_info.reporting_manager_id.employee_user_id,
-                        verb=f"Leave request updated for {leave_request.employee_id}.",
-                        verb_ar=f"تم تحديث طلب الإجازة لـ {leave_request.employee_id}.",
-                        verb_de=f"Urlaubsantrag aktualisiert für {leave_request.employee_id}.",
-                        verb_es=f"Solicitud de permiso actualizada para {leave_request.employee_id}.",
-                        verb_fr=f"Demande de congé mise à jour pour {leave_request.employee_id}.",
-                        icon="people-circle",
-                        redirect=f"/leave/request-view?id={leave_request.id}",
-                        api_redirect=f"/api/leave/request/{leave_request.id}/",
-                    )
-                return Response(
-                    UserLeaveRequestGetSerilaizer(
-                        leave_request, context={"request": request}
-                    ).data,
-                    status=201,
-                )
-            return Response(serializer.errors, status=400)
-        raise serializers.ValidationError({"error": "Access Denied.."})
+      return Response(
+            UserLeaveRequestGetSerilaizer(
+                leave_request, context={"request": request}
+            ).data,
+            status=201,
+        )
+      return Response(serializer.errors, status=400)
 
     @manager_permission_required("leave.delete_leaverequest")
     def delete(self, request, pk):

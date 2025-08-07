@@ -389,7 +389,10 @@ class CompanyLeave(HorillaModel):
         unique_together = ("based_on_week", "based_on_week_day")
 
     def __str__(self):
-        return f"{dict(WEEK_DAYS).get(self.based_on_week_day)} | {dict(WEEKS).get(self.based_on_week)}"
+        week_day_display = dict(WEEK_DAYS).get(self.based_on_week_day, "Unknown Day")
+        week_display = dict(WEEKS).get(self.based_on_week, "Any Week")
+        return f"{week_day_display} | {week_display}"
+
 
 
 class AvailableLeave(HorillaModel):

@@ -1,9 +1,11 @@
 from django.contrib.auth import authenticate
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from ...api_serializers.auth.serializers import GetEmployeeSerializer, ForgotPasswordSerializer
+from employee.models import Employee
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -79,3 +81,13 @@ class ForgotPasswordAPIView(APIView):
             except User.DoesNotExist:
                 return Response({"error": "User with this email does not exist."}, status=404)
         return Response(serializer.errors, status=400)
+    
+class UserProfileAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        employee = Employee.objects.filter(employee_user_id=request.user).first()
+        if not employee:
+            return Response({"error": "Employee profile not found."}, status=404)
+        serializer = GetEmployeeSerializer(employee)
+        return Response(serializer.data)

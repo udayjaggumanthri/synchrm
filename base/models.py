@@ -500,11 +500,17 @@ class EmployeeShift(HorillaModel):
     """
     EmployeeShift model
     """
-
+    shift_name = models.CharField(
+        max_length=50, 
+        null=False,
+        blank=False,
+        default="General"
+    )
     employee_shift = models.CharField(
         max_length=50,
         null=False,
         blank=False,
+        
     )
     days = models.ManyToManyField(EmployeeShiftDay, through="EmployeeShiftSchedule")
     weekly_full_time = models.CharField(

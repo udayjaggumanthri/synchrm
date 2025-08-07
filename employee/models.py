@@ -208,6 +208,7 @@ class Employee(models.Model):
         schedule = shift.employeeshiftschedule_set.filter(day__day=day).first()
         return schedule if schedule else None
 
+
     def get_mail(self):
         """
         This method is used to return the shift of the employee
